@@ -1,4 +1,4 @@
-from datafeed import get_new_events
+from datafeed import get_new_events, get_event_content, parse_content
 from telethon import TelegramClient, events, sync, utils, functions, Button, custom
 import yaml
 import sys
@@ -12,6 +12,8 @@ logger = logging.getLogger(__name__)
 
 # virtual bitcoin meetups
 # https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events
+
+fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
 
 path  = "./"
 config_file = path + 'config.yml'
@@ -43,29 +45,34 @@ async def new_handler(event):
 
 
 @client.on(events.NewMessage(pattern='(?i)/start', forwards=False, outgoing=False))
-async def handler(event):
+async def start_handler(event):
     await client.send_message(event.sender_id, 'Welcome to Virtual Bitcoin and Lightning Meetups bot\n')
+    await client.send_message(event.sender_id, 'Get Events', buttons=[
+            Button.text('Get New Events', resize=True, single_use=True),
+            Button.text('Past Events', resize=True, single_use=True)])
 
 
 @events.register(events.NewMessage(incoming=True, outgoing=False))
 async def handler(event):
-    if 'start' in event.raw_text:
-        await client.send_message(event.sender_id, 'Get Events', buttons=[
-            Button.text('Get New Events', resize=True, single_use=True),
-            Button.text('Past Events', resize=True, single_use=True)])
+#    if '(?i)/events' in event.raw_text:
+    if 'Get New Events' in event.raw_text:
+        content = get_event_content('new', fulmo_url)
+        formatted_text = parse_content(content)
+        await client.send_message(event.sender_id, formatted_text)
+    elif 'Past Events' in event.raw_text:
+        content = get_event_content('past', fulmo_url)
+        formatted_text = parse_content(content)
+        await client.send_message(event.sender_id, formatted_text)
+
 
     
 # ==============================   Inline  ==============================
-NEW_EVENTS = (
-    "Sample placeholder text here:\n"
-    "• [Official Docs](https://docs.python.org/3/tutorial/index.html).\n"
-    "• [Dive Into Python 3](https://rawcdn.githack.com/diveintomark/"
-    "diveintopython3/master/table-of-contents.html).\n"
-    )
-
+# cache the data
+NEW_EVENTS = parse_content(get_event_content('new', fulmo_url))
+PAST_EVENTS = parse_content(get_event_content('past', fulmo_url))
 
 @client.on(events.InlineQuery)
-async def handler(event):
+async def inline_handler(event):
     builder = event.builder
     result = None
     query = event.text.lower()
