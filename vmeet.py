@@ -1,4 +1,5 @@
-from telethon import TelegramClient, events, sync, utils, functions, Button
+from datafeed import get_new_events
+from telethon import TelegramClient, events, sync, utils, functions, Button, custom
 import yaml
 import sys
 import logging
@@ -10,6 +11,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 logger = logging.getLogger(__name__)
 
 # virtual bitcoin meetups
+# https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events
 
 path  = "./"
 config_file = path + 'config.yml'
@@ -43,24 +45,52 @@ async def new_handler(event):
 @client.on(events.NewMessage(pattern='(?i)/start', forwards=False, outgoing=False))
 async def handler(event):
     await client.send_message(event.sender_id, 'Welcome to Virtual Bitcoin and Lightning Meetups bot\n')
-# https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events
 
 
 @events.register(events.NewMessage(incoming=True, outgoing=False))
 async def handler(event):
     if 'start' in event.raw_text:
-        await client.send_message(event.sender_id, 'Get Events', buttons=[[
-            Button.text('Next 7 days', resize=True, single_use=True),
-            Button.text('This Month', resize=True, single_use=True)],
-            [Button.text('Past Events', resize=True, single_use=True)]])    
+        await client.send_message(event.sender_id, 'Get Events', buttons=[
+            Button.text('Get New Events', resize=True, single_use=True),
+            Button.text('Past Events', resize=True, single_use=True)])
+
+    
+# ==============================   Inline  ==============================
+NEW_EVENTS = (
+    "Sample placeholder text here:\n"
+    "• [Official Docs](https://docs.python.org/3/tutorial/index.html).\n"
+    "• [Dive Into Python 3](https://rawcdn.githack.com/diveintomark/"
+    "diveintopython3/master/table-of-contents.html).\n"
+    )
 
 
+@client.on(events.InlineQuery)
+async def handler(event):
+    builder = event.builder
+    result = None
+    query = event.text.lower()
+    if query == '':
+        result = builder.article(
+            'New Events',
+            text=NEW_EVENTS,
+            buttons=custom.Button.url('Join the group!', 't.me/TelethonChat'),
+            link_preview=True
+        )
+
+    # NOTE: You should always answer, but we want plugins to be able to answer
+    #       too (and we can only answer once), so we don't always answer here.
+    if result:
+        await event.answer([result])
+
+
+# ==============================   Inline  ==============================
+ 
 client.start(bot_token=TOKEN)
+#client.start()
 
 with client:
     client.add_event_handler(handler)
     print('(Press Ctrl+C to stop this)')
     client.run_until_disconnected()
-    
-    
+#    client.loop.run_until_complete(main())   
 
