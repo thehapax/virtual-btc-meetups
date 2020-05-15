@@ -1,4 +1,4 @@
-from datafeed import get_new_events, get_event_content, parse_content
+from datafeed import get_new_events, get_event_content, parse_content, fetch_tables
 from telethon import TelegramClient, events, sync, utils, functions, Button, custom
 import yaml
 import sys
@@ -43,6 +43,7 @@ client = TelegramClient(config["session_name"],
 # Default to another parse mode
 client.parse_mode = 'html'
 
+#### delete sample code
 @client.on(events.CallbackQuery(data=b'clickme'))
 async def callback(event):
     print(event.data)
@@ -55,42 +56,79 @@ async def new_handler(event):
     if 'hello' in event.raw_text:
         await client.send_message(event.sender_id, 'A single button, with "clickme" as data',
                         buttons=Button.inline('Get Data', b'clickme'))
-
+####
 
 @client.on(events.NewMessage(pattern='(?i)/start', forwards=False, outgoing=False))
 async def start_handler(event):
     await client.send_message(event.sender_id, 'Welcome to Virtual Bitcoin and Lightning Meetups bot\n')
     await client.send_message(event.sender_id, 'Get Events', buttons=[
-            Button.text('Get New Events', resize=True, single_use=True),
-            Button.text('Past Events', resize=True, single_use=True)])
+            [Button.text('Next 3 Events', resize=True, single_use=True),
+            Button.text('Next 5 Events', resize=True, single_use=True)],
+            [Button.text('All New Events', resize=True, single_use=True),
+            Button.text('Add Event', resize=True, single_use=True),],
+            [Button.text('Past Events', resize=True, single_use=True), 
+            Button.text('About', resize=True, single_use=True)]])
 
 @client.on(events.NewMessage(pattern='(?i)/add', forwards=False, outgoing=False))
 async def ad_handler(event):
-    await client.send_message(event.sender_id, 'Send us an event and we\'ll add it to the list\n')
+    await client.send_message(event.sender_id, 'Send an event to @btcfeedbackbot and we\'ll add it to the list\n')
+
 
 @client.on(events.NewMessage(pattern='(?i)/about', forwards=False, outgoing=False))
 async def about_handler(event):
-    await client.send_message(event.sender_id, 'About Us\n')
-
-
+    await client.send_message(event.sender_id, 
+                              "<b>Content Host:</b>\nFulmo - building Lightning Networks: https://fulmo.org/\n", 
+                                link_preview=False)
+    await client.send_message(event.sender_id, 
+                              "<b>Development:</b>\nChristina @ BitcoinHK: https://twitter.com/christinabahk\n",
+                                link_preview=False)
+    await client.send_message(event.sender_id,
+                              "The Bitcoin Association of Hong Kong: https://www.bitcoin.org.hk/",
+                              link_preview=False)
+   
 
 @events.register(events.NewMessage(incoming=True, outgoing=False))
 async def handler(event):
-    if 'Get New Events' in event.raw_text:
-        content = get_event_content('new', fulmo_url)
+    newevents = fetch_tables('new')
+    pastevents = fetch_tables('past')
+    if 'Next 3 Events' in event.raw_text:
+        content = get_event_content(3, newevents)
         formatted_text = parse_content(content)
-        await client.send_message(event.sender_id, formatted_text)
+        await client.send_message(event.sender_id, formatted_text, link_preview=False)
+    elif 'Next 5 Events' in event.raw_text:
+        content = get_event_content(5, newevents)
+        formatted_text = parse_content(content)
+        await client.send_message(event.sender_id, formatted_text, link_preview=False)
+    elif 'All New Events' in event.raw_text:
+        content = get_event_content(-1, newevents)
+        formatted_text = parse_content(content)
+        await client.send_message(event.sender_id, formatted_text, link_preview=False)
     elif 'Past Events' in event.raw_text:
-        content = get_event_content('past', fulmo_url)
+        content = get_event_content(-1, pastevents)
         formatted_text = parse_content(content)
-        await client.send_message(event.sender_id, formatted_text)
+        await client.send_message(event.sender_id, formatted_text, link_preview=False)
+    elif 'About' in event.raw_text:
+        await client.send_message(event.sender_id, 
+                              "<b>Content Host:</b>\nFulmo: Building the Lightning Network: https://fulmo.org/\n", 
+                                link_preview=False)
+        await client.send_message(event.sender_id, 
+                              "<b>Development:</b>\nChristina @ BitcoinHK: https://twitter.com/christinabahk\n",
+                                link_preview=False)
+        await client.send_file(event.sender_id, '/Users/octo/virtual-btc-meetups/site-logo.png')
 
-
+    elif 'Add Event' in event.raw_text:
+        await client.send_message(event.sender_id, 'Send your event to @btcfeedbackbot and we\'ll add it to the list\n')
+        
     
 # ==============================   Inline  ==============================
 # cache the data
-NEW_EVENTS = parse_content(get_event_content('new', fulmo_url))
-PAST_EVENTS = parse_content(get_event_content('past', fulmo_url))
+newevents = fetch_tables('new')
+pastevents = fetch_tables('past')
+
+NEXT3 = parse_content(get_event_content(3, newevents))
+NEXT5 = parse_content(get_event_content(5, newevents))
+NEW_EVENTS = parse_content(get_event_content(-1, newevents))
+PAST_EVENTS = parse_content(get_event_content(-1, pastevents))
 
 @client.on(events.InlineQuery)
 async def inline_handler(event):
@@ -100,38 +138,49 @@ async def inline_handler(event):
     if query == '':
         file_in_bytes=51000
         thumb_link = 'https://i.imgur.com/VY44NqO.jpg'
-        url_link= 'https://www.ccn.com/wp-content/uploads/2013/12/bitcoin-image.jpg'
         icon = InputWebDocument(thumb_link, file_in_bytes, 'image/png',[])
-        
-        result = builder.article(
-            'New Events',
-            text=NEW_EVENTS,
+
+        next3 = builder.article(
+            'Next 3 Events',
+            text=NEXT3,
             thumb= icon,
             buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
-            link_preview=True
+            link_preview=False
+            )        
+        next5 = builder.article(
+            'Next 5 Events',
+            text=NEXT5,
+            thumb= icon,
+#            buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
+            link_preview=False
             )
-        result2 = builder.article(
+        result = builder.article(
+            'All New Events',
+            text=NEW_EVENTS,
+            thumb= icon,
+ #           buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
+            link_preview=False
+            )
+        past = builder.article(
             'Past Events',
             text=PAST_EVENTS,
             thumb= icon,
-            buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
-            link_preview=True
+  #          buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
+            link_preview=False
             )
 
     # NOTE: You should always answer, but we want plugins to be able to answer
     #       too (and we can only answer once), so we don't always answer here.
     if result:
-        await event.answer([result, result2])
+        await event.answer([past, result, next5, next3])
 
 
 # ==============================   Inline  ==============================
  
 client.start(bot_token=TOKEN)
-#client.start()
 
 with client:
     client.add_event_handler(handler)
     print('(Press Ctrl+C to stop this)')
     client.run_until_disconnected()
-#    client.loop.run_until_complete(main())   
 

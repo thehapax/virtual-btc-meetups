@@ -6,6 +6,9 @@ import datetime as dt
 from dateutil.parser import parse
 import pytz
 
+# virtual bitcoin meetups
+fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
+
 # fulmo wiki new events, straight table read, fulmo is in Berlin time
 def get_new_events(url):
     tables = pd.read_html(url)
@@ -21,29 +24,39 @@ def get_past_events(url):
     return past_events
 
 
-# All times in Berlin time (GMT+2).
-#Index(['Date', 'Time', 'Name', 'Link'], dtype='object')
-
-def get_event_content(status, url):
-    # s = requests.Session()
-    page = requests.get(url).text
+def fetch_tables(status):
+    page = requests.get(fulmo_url).text
     soup = BeautifulSoup(page, "lxml")
-    #soup = BeautifulSoup(page, "html.parser")
 
     events_table = soup.find_all('table', {'class': 'wikitable'})
-    if status == 'new':
-        all_events = events_table[0] # new events 
-    elif status == 'past':
+    if status == "new":
+        all_events = events_table[0] # new events
+    elif status == "past":
         all_events = events_table[1] # past events
+    return all_events
+
+
+# All times in Berlin time (GMT+2).
+def get_event_content(status, all_events):
+    rowcount = len(all_events.find_all("tr"))
+    print(f"total number of rows: {rowcount}")
+    
+    summary = all_events.find_all("tr")
+    if status == -1:
+        print("use default")
+        all_events = summary
+    elif rowcount > status:
+        end = status+1
+        all_events = summary[1:end]
+    
+#    print(all_events) # skip the th header row
+#    print("===============")
         
     event_list = []
     an_event = []
-    for row in all_events.find_all("tr"):
+    for row in all_events: #all_events.find_all("tr"):
+#        print(str(row) + "\n")
         i = 0
-        if len(an_event) > 0:
-#            print(an_event)
-            event_list.append(an_event) 
-            an_event = []
         for elem in row.find_all("td"):
             i += 1
             if i == 2: # skip the time row (for now)
@@ -51,7 +64,11 @@ def get_event_content(status, url):
             else: 
                 sitem = str(elem.text).strip()
                 an_event.append(sitem)
-    #    print(event_list)
+        if len(an_event) > 0: # append events as lists
+            event_list.append(an_event) 
+            an_event = []
+
+#    print(event_list)
     return event_list
         
 
@@ -72,16 +89,17 @@ if __name__ == "__main__":
     
     fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
     
-    """
-    results = get_new_events(fulmo_url)
-    r = results[['Date', 'Name', 'Link']]
-    print(r.to_html())
+    print("just default all_events")
+    all_events = fetch_tables("new")
+    past_events = fetch_tables("past")
+    print(all_events)
+    content = get_event_content(-1, all_events)
+    format = parse_content(content)
+    print(format)
     
-    """
-    content = get_event_content('new', fulmo_url)
+    content = get_event_content(3, all_events)
     formatted_text = parse_content(content)
-    print(formatted_text)
-
+#    print(formatted_text)
     
     """
     # time zone formatting examples
@@ -105,16 +123,3 @@ if __name__ == "__main__":
     print(timezone_date_time_obj.tzinfo)
     """
     
-    #Index(['Date', 'Time', 'Name', 'Link'], dtype='object')
-    #print(str(header) + "########")
-#    tr_elements = doc.xpath('//div')
-#    print(tr_elements)
-#    https://lxml.de/tutorial.html
-
-    """
-    headers = []
-    for header in new_events.find_all("th"):
-        shead = str(header.text).strip()
-        headers.append(shead)   
-#    print(headers)
-    """
