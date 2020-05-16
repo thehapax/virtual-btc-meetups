@@ -4,10 +4,22 @@ import yaml
 import sys
 import logging
 from logging import handlers
-
 from telethon.tl.types import InputWebDocument
 
 log_path = '/Users/octo/virtual-btc-meetups/logs/logfile'
+
+# virtual bitcoin meetups
+fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
+bitcoinhk_logo = '/Users/octo/virtual-btc-meetups/site-logo.png'
+
+# logos and byline
+fulmo_byline = 'Fulmo: Building the Lightning Network: https://fulmo.org/'
+thumb_link = 'https://i.imgur.com/VY44NqO.jpg' # lightning logo
+feedback_msg = 'Send your event to @btcfeedbackbot and we\'ll add it to the list\n'
+
+# credits
+fulmo_info =  "<b>Content Host:</b>\nFulmo - building Lightning Networks: https://fulmo.org/\n"
+christina_info  = "<b>Development:</b>\nChristina @ BitcoinHK: https://twitter.com/christinabahk\n"
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -15,6 +27,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 
 logger = logging.getLogger(__name__)
 
+########################################
 # Log to a rotating file - why isn't this working?
 level = logging.INFO
 logger.setLevel(level)
@@ -24,9 +37,7 @@ h = logging.handlers.RotatingFileHandler(log_path, encoding='utf-8', maxBytes=5 
 h.setFormatter(logging.Formatter("%(asctime)s\t%(levelname)s:%(message)s"))
 h.setLevel(level)
 logger.addHandler(h)
-
-# virtual bitcoin meetups
-fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
+########################################
 
 path  = "./"
 config_file = path + 'config.yml'
@@ -44,19 +55,38 @@ client = TelegramClient(config["session_name"],
 client.parse_mode = 'html'
 
 #### delete sample code
-@client.on(events.CallbackQuery(data=b'clickme'))
+"""
+@client.on(events.UserUpdate)
+async def handler(event):
+    print(event.get_user())
+    print(event.last_seen())
+"""
+@client.on(events.CallbackQuery) #data=b'clickme'))
 async def callback(event):
     print(event.data)
     await event.edit('Thank you for clicking {}!'.format(event.data))
     
-
+#from telethon.tl.types import Message
 @client.on(events.NewMessage(incoming=True, outgoing=True))    
 async def new_handler(event):
-    print(event.raw_text)
+ #   print(event.raw_text)
+    sender = await event.get_sender()
+    name = utils.get_display_name(sender)
+    message = event.message
+#    print(message)
+    logger.info(name + ": " + event.text)
+#    print(name, 'said', event.text, '!')
     if 'hello' in event.raw_text:
-        await client.send_message(event.sender_id, 'A single button, with "clickme" as data',
-                        buttons=Button.inline('Get Data', b'clickme'))
-####
+#        await client.send_message(event.sender_id, 'A single button, with "clickme" as data',
+#                        buttons=Button.inline('Get Data', b'clickme'))
+        await client.send_message(event.sender_id, 'Send Location data',
+                        buttons=Button.request_location('Get location', 
+                                                        resize=None, 
+                                                        single_use=True,
+                                                        selective=True))
+
+######### end sample code
+
 
 @client.on(events.NewMessage(pattern='(?i)/start', forwards=False, outgoing=False))
 async def start_handler(event):
@@ -70,21 +100,18 @@ async def start_handler(event):
             Button.text('About', resize=True, single_use=True)]])
 
 @client.on(events.NewMessage(pattern='(?i)/add', forwards=False, outgoing=False))
-async def ad_handler(event):
-    await client.send_message(event.sender_id, 'Send an event to @btcfeedbackbot and we\'ll add it to the list\n')
+async def add_handler(event):
+    await client.send_message(event.sender_id, feedback_msg)
 
 
 @client.on(events.NewMessage(pattern='(?i)/about', forwards=False, outgoing=False))
 async def about_handler(event):
     await client.send_message(event.sender_id, 
-                              "<b>Content Host:</b>\nFulmo - building Lightning Networks: https://fulmo.org/\n", 
+                                fulmo_info, 
                                 link_preview=False)
     await client.send_message(event.sender_id, 
-                              "<b>Development:</b>\nChristina @ BitcoinHK: https://twitter.com/christinabahk\n",
+                                christina_info,
                                 link_preview=False)
-    await client.send_message(event.sender_id,
-                              "The Bitcoin Association of Hong Kong: https://www.bitcoin.org.hk/",
-                              link_preview=False)
    
 
 @events.register(events.NewMessage(incoming=True, outgoing=False))
@@ -109,15 +136,15 @@ async def handler(event):
         await client.send_message(event.sender_id, formatted_text, link_preview=False)
     elif 'About' in event.raw_text:
         await client.send_message(event.sender_id, 
-                              "<b>Content Host:</b>\nFulmo: Building the Lightning Network: https://fulmo.org/\n", 
+                                fulmo_info, 
                                 link_preview=False)
         await client.send_message(event.sender_id, 
-                              "<b>Development:</b>\nChristina @ BitcoinHK: https://twitter.com/christinabahk\n",
+                                christina_info,
                                 link_preview=False)
-        await client.send_file(event.sender_id, '/Users/octo/virtual-btc-meetups/site-logo.png')
+        await client.send_file(event.sender_id, bitcoinhk_logo)
 
     elif 'Add Event' in event.raw_text:
-        await client.send_message(event.sender_id, 'Send your event to @btcfeedbackbot and we\'ll add it to the list\n')
+        await client.send_message(event.sender_id, feedback_msg)
         
     
 # ==============================   Inline  ==============================
@@ -130,50 +157,47 @@ NEXT5 = parse_content(get_event_content(5, newevents))
 NEW_EVENTS = parse_content(get_event_content(-1, newevents))
 PAST_EVENTS = parse_content(get_event_content(-1, pastevents))
 
+#from telethon.tl.types import InputGeoPoint
+#from telethon.tl.types import GeoPoint
+
 @client.on(events.InlineQuery)
 async def inline_handler(event):
+#    print("event id:")
+#    print(event.id)
+    
     builder = event.builder
     result = None
     query = event.text.lower()
     if query == '':
         file_in_bytes=51000
-        thumb_link = 'https://i.imgur.com/VY44NqO.jpg'
-        icon = InputWebDocument(thumb_link, file_in_bytes, 'image/png',[])
+        thumb_link = 'https://i.imgur.com/VY44NqO.jpg' # lightning logo
+        icon = InputWebDocument(thumb_link, file_in_bytes, 'image/jpeg',[])
 
-        next3 = builder.article(
+        next3 = await builder.article(
             'Next 3 Events',
             text=NEXT3,
             thumb= icon,
-            buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
             link_preview=False
             )        
-        next5 = builder.article(
+        next5 = await builder.article(
             'Next 5 Events',
             text=NEXT5,
             thumb= icon,
-#            buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
             link_preview=False
             )
-        result = builder.article(
+        result = await builder.article(
             'All New Events',
             text=NEW_EVENTS,
             thumb= icon,
- #           buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
             link_preview=False
             )
-        past = builder.article(
-            'Past Events',
-            text=PAST_EVENTS,
-            thumb= icon,
-  #          buttons=custom.Button.url('Fulmo: Building the Lightning Network', 'https://fulmo.org/'),
-            link_preview=False
-            )
-
     # NOTE: You should always answer, but we want plugins to be able to answer
     #       too (and we can only answer once), so we don't always answer here.
     if result:
-        await event.answer([past, result, next5, next3])
-
+        await event.answer([result, next5, next3])
+    else:
+        await event.answer("bot offline")
+    
 
 # ==============================   Inline  ==============================
  

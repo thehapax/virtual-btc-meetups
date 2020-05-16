@@ -5,6 +5,13 @@ from bs4 import BeautifulSoup
 import datetime as dt
 from dateutil.parser import parse
 import pytz
+import logging
+
+# Enable logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    level=logging.INFO)
+
+logger = logging.getLogger(__name__)
 
 # virtual bitcoin meetups
 fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
@@ -39,13 +46,12 @@ def fetch_tables(status):
 # All times in Berlin time (GMT+2).
 def get_event_content(status, all_events):
     rowcount = len(all_events.find_all("tr"))
-    print(f"total number of rows: {rowcount}")
+    logger.info(f"total number of rows: {rowcount}")
     
     summary = all_events.find_all("tr")
-    if status == -1:
-        print("use default")
+    if status == -1: # use default content
         all_events = summary
-    elif rowcount > status:
+    elif rowcount > status:  # parse down content
         end = status+1
         all_events = summary[1:end]
     
@@ -84,6 +90,11 @@ def parse_content(content):
 
     return text
 
+def parse_pastevents(eventlist):
+    events = ""
+    return events
+    
+
 
 if __name__ == "__main__":
     
@@ -92,15 +103,17 @@ if __name__ == "__main__":
     print("just default all_events")
     all_events = fetch_tables("new")
     past_events = fetch_tables("past")
-    print(all_events)
-    content = get_event_content(-1, all_events)
-    format = parse_content(content)
-    print(format)
+    print(past_events)
     
+    content = parse_pastevents(past_events)
+    print(content)
+
+    """
     content = get_event_content(3, all_events)
     formatted_text = parse_content(content)
-#    print(formatted_text)
-    
+    print(formatted_text)
+    """
+        
     """
     # time zone formatting examples
     timezone = pytz.timezone('America/New_York')
