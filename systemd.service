@@ -1,0 +1,14 @@
+[Unit]
+Description=Inline telegram bot for Fulmo events
+After=network.target
+
+[Service]
+WorkingDirectory=/root/virtual-btc-meetups
+#note that the below assumes you have a venv as per step 3 above
+ExecStart=/root/virtual-btc-meetups/env/bin/python3 vmeet.py
+TimeoutStopSec=10
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
