@@ -72,16 +72,16 @@ async def callback(event):
 #        print(f'start:{start} - end: {end}')
         new_events = fetch_tables("new")
         rowcount = get_numrows(new_events)
-        print(f"Row Count - {rowcount}")
+#        print(f"Row Count - {rowcount}")
         sublist = get_next_content(start, end, new_events)
         result = parse_next_content(sublist)
         # print(result)
         await client.send_message(event.sender_id, result, link_preview=False)
         next_index = end
-        print(f'Next Index: {next_index}')
+#        print(f'Next Index: {next_index}')
         if rowcount > next_index:
             next_index = str(next_index) + "-event"
-            print(f'Next Index: {next_index}')
+#            print(f'Next Index: {next_index}')
             await client.send_message(event.sender_id, "Want more events?",
                                       buttons=Button.inline('Get More Events', 
                                                            next_index))
