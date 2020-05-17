@@ -2,7 +2,6 @@ import pandas as pd
 import requests
 from lxml import html
 from bs4 import BeautifulSoup
-import datetime as dt
 from dateutil.parser import parse
 import pytz
 import logging
@@ -15,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 # virtual bitcoin meetups
 fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
+
 
 # fulmo wiki new events, straight table read, fulmo is in Berlin time
 def get_new_events(url):
@@ -32,6 +32,7 @@ def get_past_events(url):
 
 
 def fetch_tables(status):
+    logger.info("Fetching Tables")
     page = requests.get(fulmo_url).text
     soup = BeautifulSoup(page, "lxml")
 
@@ -56,7 +57,6 @@ def get_event_content(status, all_events):
         all_events = summary[1:end]
     
 #    print(all_events) # skip the th header row
-#    print("===============")
         
     event_list = []
     an_event = []
@@ -91,48 +91,37 @@ def parse_content(content):
     return text
 
 def parse_pastevents(eventlist):
-    events = ""
+    events = []
+    for row in eventlist.find_all("tr"):
+        single = ""
+        for elem in row.find_all("td"):
+            single += (str(elem.text).strip()) + "\n"
+       # print(single)
+        events.append(single)     
     return events
     
+def output_past(events, len):
+    output = ""
+    i = 0
+    for item in events[::-1]:
+        if i <= len:
+            output += item +"\n"
+            i = i + 1
+        else:
+            break
+    return output
 
 
 if __name__ == "__main__":
     
     fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
-    
-    print("just default all_events")
-    all_events = fetch_tables("new")
-    past_events = fetch_tables("past")
-    print(past_events)
-    
-    content = parse_pastevents(past_events)
-    print(content)
 
-    """
-    content = get_event_content(3, all_events)
-    formatted_text = parse_content(content)
-    print(formatted_text)
-    """
+    header = "All Events in UTC+2 (Berlin Time)"
+    past_events = fetch_tables("past")    
+    events = parse_pastevents(past_events)
+    output = output_past(events, len(events))
+    #    output = output_past(events, 5)
+    output = header + output
+    print(output)
+
         
-    """
-    # time zone formatting examples
-    timezone = pytz.timezone('America/New_York')
-    date_time_str = '2018-06-29 17:08:00'
-    date_time = 'Mon, 21 March, 2015'
-    dtj = dt.datetime.strptime(date_time,  '%a, %d %B, %Y')
-    print(dtj)
-    
-    date_time_str = str(dt.datetime.now())
-    print(date_time_str)
-    print(parse(date_time_str))
-    
-    date_time_obj = dt.datetime.strptime(date_time_str,  '%Y-%m-%d %H:%M:%S.%f')
-    print(date_time_obj)
-    
-    date_time_obj = dt.datetime.strptime(date_time_str, '%Y-%m-%d %H:%M:%S.%f')
-    timezone_date_time_obj = timezone.localize(date_time_obj)
-    
-    print(timezone_date_time_obj)
-    print(timezone_date_time_obj.tzinfo)
-    """
-    
