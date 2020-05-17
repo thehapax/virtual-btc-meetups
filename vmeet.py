@@ -72,13 +72,13 @@ async def callback(event):
 #        print(f'start:{start} - end: {end}')
         new_events = fetch_tables("new")
         rowcount, summary = get_numrows(new_events)
-#        print(f"Row Count - {rowcount}")
+        print(f"Row Count - {rowcount}")
         sublist = get_next_content(start, end, summary, rowcount)
         result = parse_next_content(sublist)
         # print(result)
         await client.send_message(event.sender_id, result, link_preview=False)
         next_index = end
-#        print(f'Next Index: {next_index}')
+        print(f'Next Index: {next_index}')
         if rowcount > next_index:
             next_index = str(next_index) + "-event"
 #            print(f'Next Index: {next_index}')
@@ -191,7 +191,7 @@ async def handler(event):
 try:
     pastevents = fetch_tables('past')
     newevents = fetch_tables('new')
-    size_newevents = get_numrows(newevents)
+    size_newevents, summary = get_numrows(newevents)
     NEXT3 = parse_content(get_event_content(3, newevents))
     NEW_EVENTS = parse_content(get_event_content(-1, newevents))
 except Exception as e:
