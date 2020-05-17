@@ -16,21 +16,6 @@ logger = logging.getLogger(__name__)
 fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
 
 
-# fulmo wiki new events, straight table read, fulmo is in Berlin time
-def get_new_events(url):
-    tables = pd.read_html(url)
-    upcoming_events = tables[0]
-    print(upcoming_events.columns)
-    return upcoming_events
-
-
-#fulmo wiki past events
-def get_past_events(url):
-    tables = pd.read_html(url)
-    past_events = tables[1]
-    return past_events
-
-
 def fetch_tables(status):
     logger.info("Fetching Tables")
     page = requests.get(fulmo_url).text
@@ -87,8 +72,8 @@ def parse_content(content):
         text += "\n"
         for elem in event:
             text += elem + "\n"
-
     return text
+
 
 def parse_pastevents(eventlist):
     events = []
@@ -99,6 +84,7 @@ def parse_pastevents(eventlist):
        # print(single)
         events.append(single)     
     return events
+
     
 def output_past(events, len):
     output = ""
@@ -113,8 +99,6 @@ def output_past(events, len):
 
 
 if __name__ == "__main__":
-    
-    fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
 
     header = "All Events in UTC+2 (Berlin Time)"
     past_events = fetch_tables("past")    

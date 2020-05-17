@@ -63,7 +63,7 @@ client.parse_mode = 'html'
 async def callback(event):
     #content = get_next_events(event.data)
     data = str(event.data)
-    print(data)
+#    print(data)
     if len(data) == 1:
         index = int(event.data.decode())
         print(index)
