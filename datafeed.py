@@ -31,26 +31,25 @@ def fetch_tables(status):
 
 
 def get_numrows(eventlist):
-    rowcount = len(eventlist.find_all("tr"))
-    # minus header row
-    total = rowcount
-#    logger.info(f"total number of rows: {total}")
-    return total
-
-
-def get_next_content(begin, end, all_events):
-#    print(begin, end)
-    # row 0 is the th header,  row 1 .... X is content
-    summary = all_events.find_all("tr")
+    summary = eventlist.find_all("tr")
     rowcount = len(summary)
+    total = rowcount
+    logger.info(f"total number of rows: {total}")
+    return total, summary
+
+
+def get_next_content(begin, end, summary, rowcount):
+    # row 0 is the th header,  row 1 .... X is content
+    #    summary = all_events.find_all("tr")
+    #    rowcount = len(summary)
     if begin >= rowcount:
- #       logger.info("get_next_content: begin >= rowcount")
+    #       logger.info("get_next_content: begin >= rowcount")
         return None
     if  end <= rowcount:  # 4-6 where total is 6
- #       logger.info("get_next_content: end <= rowcount")
+    #       logger.info("get_next_content: end <= rowcount")
         return summary[begin:end]
     elif end > rowcount:
- #       logger.info("get_next_content:end > rowcount")
+    #       logger.info("get_next_content:end > rowcount")
         return summary[begin:rowcount]
     
     
