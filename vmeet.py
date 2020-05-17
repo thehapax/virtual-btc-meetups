@@ -62,43 +62,41 @@ client.parse_mode = 'html'
 @client.on(events.CallbackQuery())
 async def callback(event):
     data = str(event.data.decode())
-#   print(data)
+    # print(data)
     logging.info(f'Callback event {data}')
     if re.match(r"^\d-event", data):
         indexes = re.split(r'-', data)
- #       print(indexes)
+        # print(indexes)
         start = int(indexes[0])
         end = int(start+3)
- #       print(f'start:{start} - end: {end}')
+#        print(f'start:{start} - end: {end}')
         new_events = fetch_tables("new")
         rowcount = get_numrows(new_events)
- #       print(f"Row Count - callback query: {rowcount}")
+        print(f"Row Count - {rowcount}")
         sublist = get_next_content(start, end, new_events)
         result = parse_next_content(sublist)
- #        print(result)
+        # print(result)
         await client.send_message(event.sender_id, result, link_preview=False)
         next_index = end
- #       print(f'Next Index: {next_index}')
+        print(f'Next Index: {next_index}')
         if rowcount > next_index:
+            next_index = str(next_index) + "-event"
+            print(f'Next Index: {next_index}')
             await client.send_message(event.sender_id, "Want more events?",
-                                      buttons=Button.inline('Get More Events', next_index))
+                                      buttons=Button.inline('Get More Events', 
+                                                           next_index))
     else:
-        await event.edit('Thank you for clicking {}!'.format(event.data))
-
-#    if len(data) == 1:
-#        index = int(event.data.decode())
-#        print(index)
-
-
+        await event.edit('No More Events listed')
+     
     
 @client.on(events.NewMessage(incoming=True, outgoing=True))    
 async def new_handler(event):
     try:
-        sender = await event.get_sender()
-        name = utils.get_display_name(sender)
-        message = event.message
-        logger.info(name + ": " + event.text)
-            
+#        sender = await event.get_sender()
+#        name = utils.get_display_name(sender)
+#        message = event.message
+#        logger.info(name + ": " + event.text)
+        
         if 'timezone' in event.raw_text:
             await client.send_message(event.sender_id, 'Set Your Time Zone:',
                             buttons=Button.request_location('Share location', 
@@ -123,8 +121,7 @@ async def new_handler(event):
 @client.on(events.NewMessage(pattern='(?i)/start', forwards=False, outgoing=False))
 async def start_handler(event):
     try:
-        await client.send_message(event.sender_id, 'Welcome to Virtual Bitcoin and Lightning Meetups bot\n')
-        await client.send_message(event.sender_id, 'Get Events', buttons=[
+        await client.send_message(event.sender_id, 'Welcome to Virtual Bitcoin and Lightning Meetups bot!\n', buttons=[
                 [Button.text('Next 3 Events', resize=True, single_use=True),
                 Button.text('All New Events', resize=True, single_use=True)],
                 [Button.text('Add Event', resize=True, single_use=True),
@@ -147,6 +144,8 @@ async def about_handler(event):
     await client.send_message(event.sender_id, 
                                 christina_info,
                                 link_preview=False)
+    await client.send_file(event.sender_id, bitcoinhk_logo)
+
    
 
 @events.register(events.NewMessage(incoming=True, outgoing=False))
@@ -159,8 +158,9 @@ async def handler(event):
             await client.send_message(event.sender_id, formatted_text, link_preview=False) 
             if size_newevents > 4:
                 # print(f'list size: {size_newevents}')
-                await client.send_message(event.sender_id, "Want more events?",
-                                      buttons=Button.inline('Get Another 3 Events', "4-event"))
+                await client.send_message(event.sender_id, "Want more?",
+                                      buttons=Button.inline('Get more Events', 
+                                                            "4-event"))
         elif 'All New Events' in event.raw_text:
             content = get_event_content(-1, newevents)
             formatted_text = parse_content(content)
@@ -189,17 +189,11 @@ async def handler(event):
 # ==============================   Inline  ==============================
 # cache the data
 try:
-    newevents = fetch_tables('new')
     pastevents = fetch_tables('past')
+    newevents = fetch_tables('new')
     size_newevents = get_numrows(newevents)
-    
-    pevents = parse_pastevents(pastevents)
-    header = "<b>All Events in UTC+2 (Berlin Time)</b>\n\n"
-    output_past(pevents, len(pevents))
-
     NEXT3 = parse_content(get_event_content(3, newevents))
-    NEW_EVENTS = parse_content(get_event_content(-1, newevents))            
-    PAST_EVENTS =  header + output
+    NEW_EVENTS = parse_content(get_event_content(-1, newevents))
 except Exception as e:
         logger.error(e)
 
@@ -223,7 +217,8 @@ async def inline_handler(event):
                 'Add an Event',
                 text=feedback_msg,
                 thumb= icon,
-                link_preview=False
+                link_preview=False,
+                buttons=custom.Button.url("Send a message", 't.me/btcfeedbackbot')
                 )
             next3 = await builder.article(
                 'Next 3 Events',
