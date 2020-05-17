@@ -5,6 +5,7 @@ from bs4 import BeautifulSoup
 from dateutil.parser import parse
 import pytz
 import logging
+import re
 
 # Enable logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -29,6 +30,55 @@ def fetch_tables(status):
     return all_events
 
 
+def get_numrows(eventlist):
+    rowcount = len(eventlist.find_all("tr"))
+    # minus header row
+    total = rowcount
+    logger.info(f"total number of rows: {total}")
+    return total
+
+
+def get_next_content(begin, end, all_events):
+    print(begin, end)
+    # row 0 is the th header,  row 1 .... X is content
+    summary = all_events.find_all("tr")
+    rowcount = len(summary)
+    if begin >= rowcount:
+        print("begin >= rowcount")
+        return None
+    if  end <= rowcount:  # 4-6 where total is 6
+        print("end <= rowcount")
+        return summary[begin:end]
+    elif end > rowcount:
+        print("end > rowcount")
+        return summary[begin:rowcount]
+    
+    
+def parse_next_content(all_events):
+    event_list = []
+    an_event = []
+    for row in all_events: 
+        i = 0
+        for elem in row.find_all("td"):
+            i += 1
+            if i == 2: # skip the time row (for now)
+                pass
+            else: 
+                sitem = str(elem.text).strip()
+                an_event.append(sitem)
+        if len(an_event) > 0: # append events as lists
+            event_list.append(an_event) 
+            an_event = []
+            
+    text = ""
+    for event in event_list:
+        text += "\n"
+        for elem in event:
+            text += elem + "\n"
+    return text
+
+    
+###################################################
 # All times in Berlin time (GMT+2).
 def get_event_content(status, all_events):
     rowcount = len(all_events.find_all("tr"))
@@ -40,9 +90,10 @@ def get_event_content(status, all_events):
     elif rowcount > status:  # parse down content
         end = status+1
         all_events = summary[1:end]
-    
-#    print(all_events) # skip the th header row
-        
+    elif rowcount < status: # list length shorter than status, return entire list
+        all_events = summary
+
+#    print(all_events) # skip the th header row        
     event_list = []
     an_event = []
     for row in all_events: #all_events.find_all("tr"):
@@ -99,13 +150,30 @@ def output_past(events, len):
 
 
 if __name__ == "__main__":
-
+    """    
     header = "All Events in UTC+2 (Berlin Time)"
     past_events = fetch_tables("past")    
     events = parse_pastevents(past_events)
     output = output_past(events, len(events))
     #    output = output_past(events, 5)
     output = header + output
-    print(output)
-
-        
+    #print(output)
+    """
+    
+    new_events = fetch_tables("new")
+    data = "4-event"
+    
+    if re.match(r"^\d-event", data):
+        print("matches event")
+        indexes = re.split(r'-', data)
+        print(indexes)
+        start = int(indexes[0])
+        #end = int(start+3)
+        end = int(start+10)
+        print(f'start:{start} - end: {end}')
+        rowcount = get_numrows(new_events)
+        print(f'rowcount new events: {rowcount}')
+        sublist = get_next_content(start, end, new_events)
+        #print(sublist)
+        result = parse_next_content(sublist)
+        print(result)

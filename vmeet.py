@@ -1,5 +1,5 @@
-from datafeed import get_new_events, get_event_content, parse_content, fetch_tables
-from datafeed import parse_pastevents, output_past
+from datafeed import get_event_content, parse_content, fetch_tables, parse_pastevents
+from datafeed import output_past, get_numrows, get_next_content, parse_next_content
 from telethon import TelegramClient, events, sync, utils, functions, Button, custom
 from telethon.tl.types import GeoPoint
 from telethon.tl.types import GeoPointEmpty
@@ -9,13 +9,13 @@ import logging
 from logging import handlers
 from telethon.tl.types import InputWebDocument
 from tzutils import get_tz_from_coord
-
+import re
 
 log_path = '/Users/octo/virtual-btc-meetups/logs/logfile'
+bitcoinhk_logo = '/Users/octo/virtual-btc-meetups/site-logo.png'
 
 # virtual bitcoin meetups
 fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
-bitcoinhk_logo = '/Users/octo/virtual-btc-meetups/site-logo.png'
 
 # logos and byline
 fulmo_byline = 'Fulmo: Building the Lightning Network: https://fulmo.org/'
@@ -61,16 +61,34 @@ client.parse_mode = 'html'
 
 @client.on(events.CallbackQuery())
 async def callback(event):
-    #content = get_next_events(event.data)
-    data = str(event.data)
-#    print(data)
-    if len(data) == 1:
-        index = int(event.data.decode())
-        print(index)
-        await client.send_message(event.sender_id, "Want more events?",
-                                    buttons=Button.inline('Get Another 3 Events', 4))
+    data = str(event.data.decode())
+#   print(data)
+    logging.info(f'Callback event {data}')
+    if re.match(r"^\d-event", data):
+        indexes = re.split(r'-', data)
+ #       print(indexes)
+        start = int(indexes[0])
+        end = int(start+3)
+ #       print(f'start:{start} - end: {end}')
+        new_events = fetch_tables("new")
+        rowcount = get_numrows(new_events)
+ #       print(f"Row Count - callback query: {rowcount}")
+        sublist = get_next_content(start, end, new_events)
+        result = parse_next_content(sublist)
+ #        print(result)
+        await client.send_message(event.sender_id, result, link_preview=False)
+        next_index = end
+ #       print(f'Next Index: {next_index}')
+        if rowcount > next_index:
+            await client.send_message(event.sender_id, "Want more events?",
+                                      buttons=Button.inline('Get More Events', next_index))
     else:
         await event.edit('Thank you for clicking {}!'.format(event.data))
+
+#    if len(data) == 1:
+#        index = int(event.data.decode())
+#        print(index)
+
 
     
 @client.on(events.NewMessage(incoming=True, outgoing=True))    
@@ -138,9 +156,11 @@ async def handler(event):
         if 'Next 3 Events' in event.raw_text:
             content = get_event_content(3, newevents)
             formatted_text = parse_content(content)
-            await client.send_message(event.sender_id, formatted_text, link_preview=False)
-            await client.send_message(event.sender_id, "Want more events?",
-                                    buttons=Button.inline('Get Another 3 Events', 4))
+            await client.send_message(event.sender_id, formatted_text, link_preview=False) 
+            if size_newevents > 4:
+                # print(f'list size: {size_newevents}')
+                await client.send_message(event.sender_id, "Want more events?",
+                                      buttons=Button.inline('Get Another 3 Events', "4-event"))
         elif 'All New Events' in event.raw_text:
             content = get_event_content(-1, newevents)
             formatted_text = parse_content(content)
@@ -171,6 +191,8 @@ async def handler(event):
 try:
     newevents = fetch_tables('new')
     pastevents = fetch_tables('past')
+    size_newevents = get_numrows(newevents)
+    
     pevents = parse_pastevents(pastevents)
     header = "<b>All Events in UTC+2 (Berlin Time)</b>\n\n"
     output_past(pevents, len(pevents))
@@ -185,7 +207,9 @@ except Exception as e:
 @client.on(events.InlineQuery)
 async def inline_handler(event):
     try:   
-        logging.info("Inline Query Event id:" + str(event.id))
+        sender = await event.get_sender()
+        name = utils.get_display_name(sender)
+        logging.info("Inline Query: " +  name +  ", Event id:" + str(event.id))
         builder = event.builder
         result = None
         next3 = None
@@ -194,7 +218,7 @@ async def inline_handler(event):
             file_in_bytes=51000
             thumb_link = 'https://i.imgur.com/VY44NqO.jpg' # lightning logo
             icon = InputWebDocument(thumb_link, file_in_bytes, 'image/jpeg',[])
-            
+                        
             addevent = await builder.article(
                 'Add an Event',
                 text=feedback_msg,
@@ -205,8 +229,9 @@ async def inline_handler(event):
                 'Next 3 Events',
                 text=NEXT3,
                 thumb= icon,
-                link_preview=False
-                )        
+                link_preview=False, 
+                buttons=custom.Button.url('Visit the Bot for more', 't.me/bitcoin_events_bot')
+                ) 
             result = await builder.article(
                 'All New Events',
                 text=NEW_EVENTS,
