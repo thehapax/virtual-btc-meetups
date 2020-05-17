@@ -1,2 +1,2 @@
 # virtual-btc-meetups
-online meetups bot for bitcoin and lightning
+online meetup telegram bot for bitcoin and lightning
