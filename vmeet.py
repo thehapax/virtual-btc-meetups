@@ -92,10 +92,6 @@ async def callback(event):
 @client.on(events.NewMessage(incoming=True, outgoing=True))    
 async def new_handler(event):
     try:
-#        sender = await event.get_sender()
-#        name = utils.get_display_name(sender)
-#        message = event.message
-#        logger.info(name + ": " + event.text)
         
         if 'timezone' in event.raw_text:
             await client.send_message(event.sender_id, 'Set Your Time Zone:',
