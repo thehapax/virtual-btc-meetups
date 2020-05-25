@@ -1,5 +1,7 @@
 from datafeed import get_event_content, parse_content, fetch_tables, parse_pastevents
 from datafeed import output_past, get_numrows, get_next_content, parse_next_content
+from datafeed import fetch_lastupdated
+
 from telethon import TelegramClient, events, sync, utils, functions, Button, custom
 from telethon.tl.types import GeoPoint
 from telethon.tl.types import GeoPointEmpty
@@ -149,6 +151,7 @@ async def handler(event):
     try:
     #    print(event.raw_text)
         if 'Next 3 Events' in event.raw_text:
+            newevents = fetch_tables('new')
             content = get_event_content(3, newevents)
             formatted_text = parse_content(content)
             await client.send_message(event.sender_id, formatted_text, link_preview=False) 
@@ -158,10 +161,15 @@ async def handler(event):
                                       buttons=Button.inline('Get more Events', 
                                                             "4-event"))
         elif 'All New Events' in event.raw_text:
+            newevents = fetch_tables('new')
             content = get_event_content(-1, newevents)
             formatted_text = parse_content(content)
             await client.send_message(event.sender_id, formatted_text, link_preview=False)
+            lastupdate = fetch_lastupdated()
+            await client.send_message(event.sender_id, lastupdate, link_preview=False)
+
         elif 'Past Events' in event.raw_text:
+            pastevents = fetch_tables('past')
             events = parse_pastevents(pastevents)
             output = output_past(events, len(events))
             header = "<b>All Events in UTC+2 (Berlin Time)</b>\n\n"
@@ -184,14 +192,15 @@ async def handler(event):
     
 # ==============================   Inline  ==============================
 # cache the data
-try:
-    pastevents = fetch_tables('past')
-    newevents = fetch_tables('new')
-    size_newevents, summary = get_numrows(newevents)
-    NEXT3 = parse_content(get_event_content(3, newevents))
-    NEW_EVENTS = parse_content(get_event_content(-1, newevents))
-except Exception as e:
-        logger.error(e)
+pastevents = fetch_tables('past')
+
+def get_inline_data():
+    try:
+        newevents = fetch_tables('new')
+        size_newevents, summary = get_numrows(newevents)
+        return newevents
+    except Exception as e:
+            logger.error(e)
 
 
 @client.on(events.InlineQuery)
@@ -204,10 +213,15 @@ async def inline_handler(event):
         result = None
         next3 = None
         query = event.text.lower()
+
         if query == '':
             file_in_bytes=51000
             thumb_link = 'https://i.imgur.com/VY44NqO.jpg' # lightning logo
             icon = InputWebDocument(thumb_link, file_in_bytes, 'image/jpeg',[])
+
+            newevents = get_inline_data()
+            NEXT3 = parse_content(get_event_content(3, newevents))
+            NEW_EVENTS = parse_content(get_event_content(-1, newevents))
                         
             addevent = await builder.article(
                 'Add an Event',

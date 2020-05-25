@@ -16,6 +16,16 @@ logger = logging.getLogger(__name__)
 # virtual bitcoin meetups
 fulmo_url = "https://wiki.fulmo.org/wiki/List_of_Virtual_Bitcoin_and_Lightning_Network_Events"
 
+def fetch_lastupdated():
+    logger.info("fetching last updated")
+    page = requests.get(fulmo_url).text
+    soup = BeautifulSoup(page, "lxml")
+    update_tag = soup.find_all('li', {'id': 'footer-info-lastmod'})
+    updatetxt = update_tag[0].text.split('was')
+    updated = updatetxt[1].strip()
+    logger.info(updated)
+    return updated
+
 
 def fetch_tables(status):
     logger.info("Fetching Tables")
@@ -149,6 +159,9 @@ def output_past(events, len):
 
 
 if __name__ == "__main__":
+    last_updated = fetch_lastupdated()
+    
+    
     """    
     header = "All Events in UTC+2 (Berlin Time)"
     past_events = fetch_tables("past")    
@@ -158,7 +171,8 @@ if __name__ == "__main__":
     output = header + output
     #print(output)
     """
-    
+
+    """    
     new_events = fetch_tables("new")
     data = "4-event"
     
@@ -178,3 +192,4 @@ if __name__ == "__main__":
 #        print(sublist)
         result = parse_next_content(sublist)
         print(result)
+    """
