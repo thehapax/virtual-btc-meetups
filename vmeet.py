@@ -155,7 +155,9 @@ async def handler(event):
             content = get_event_content(3, newevents)
             formatted_text = parse_content(content)
             await client.send_message(event.sender_id, formatted_text, link_preview=False) 
-            if size_newevents > 4:
+            size_newevents, summary = get_numrows(newevents)
+
+            if len(newevents) > 4:
                 # print(f'list size: {size_newevents}')
                 await client.send_message(event.sender_id, "Want more?",
                                       buttons=Button.inline('Get more Events', 
@@ -197,7 +199,6 @@ pastevents = fetch_tables('past')
 def get_inline_data():
     try:
         newevents = fetch_tables('new')
-        size_newevents, summary = get_numrows(newevents)
         return newevents
     except Exception as e:
             logger.error(e)
