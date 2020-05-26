@@ -156,7 +156,7 @@ async def handler(event):
             formatted_text = parse_content(content)
             await client.send_message(event.sender_id, formatted_text, link_preview=False) 
             size_newevents, summary = get_numrows(newevents)
-            print(f'list size: {size_newevents}')
+            #print(f'list size: {size_newevents}')
 
             if size_newevents > 4:
                 await client.send_message(event.sender_id, "Want more?",
