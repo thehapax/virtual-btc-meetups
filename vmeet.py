@@ -123,8 +123,7 @@ async def start_handler(event):
                 [Button.text('Next 3 Events', resize=True, single_use=True),
                 Button.text('All New Events', resize=True, single_use=True)],
                 [Button.text('Add Event', resize=True, single_use=True),
-                Button.text('Past Events', resize=False, single_use=True)], 
-                [Button.text('About', resize=True, single_use=True)]])
+                Button.text('About', resize=True, single_use=True)]])
     except Exception as e:
         logger.error(e)
 
