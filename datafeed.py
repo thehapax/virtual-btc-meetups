@@ -28,16 +28,23 @@ def fetch_lastupdated():
 
 
 def fetch_tables(status):
-    logger.info("Fetching Tables")
-    page = requests.get(fulmo_url).text
-    soup = BeautifulSoup(page, "lxml")
+    try:
+        logger.info("Fetching Tables")
+        page = requests.get(fulmo_url).text
+        soup = BeautifulSoup(page, "lxml")
 
-    events_table = soup.find_all('table', {'class': 'wikitable'})
-    if status == "new":
-        all_events = events_table[0] # new events
-    elif status == "past":
-        all_events = events_table[1] # past events
-    return all_events
+        events_table = soup.find_all('table', {'class': 'wikitable'})
+        if status == "new":
+            all_events = events_table[0] # new events
+        elif status == 'ongoing':
+            all_events = events_table[1] # new events
+        elif status == "past":
+            all_events = events_table[2] # past events
+  
+        return all_events
+    except Exception as e: 
+        logger.error(e)
+        return None
 
 
 def get_numrows(eventlist):

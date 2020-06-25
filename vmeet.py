@@ -91,6 +91,7 @@ async def callback(event):
         await event.edit('No More Events listed')
      
     
+# setting a time zone
 @client.on(events.NewMessage(incoming=True, outgoing=True))    
 async def new_handler(event):
     try:
@@ -116,23 +117,24 @@ async def new_handler(event):
         logger.error(e)
 
 
+# start handler
 @client.on(events.NewMessage(pattern='(?i)/start', forwards=False, outgoing=False))
 async def start_handler(event):
     try:
         await client.send_message(event.sender_id, 'Welcome to Virtual Bitcoin and Lightning Meetups bot!\n', buttons=[
-                [Button.text('Next 3 Events', resize=True, single_use=True),
-                Button.text('All New Events', resize=True, single_use=True)],
+                [Button.text('Ongoing Events', resize=True, single_use=True),
+                Button.text('Upcoming Events', resize=True, single_use=True)],
                 [Button.text('Add Event', resize=True, single_use=True),
                 Button.text('About', resize=True, single_use=True)]])
     except Exception as e:
         logger.error(e)
 
-
+# add a new event
 @client.on(events.NewMessage(pattern='(?i)/add', forwards=False, outgoing=False))
 async def add_handler(event):
     await client.send_message(event.sender_id, feedback_msg)
 
-
+# About this bot
 @client.on(events.NewMessage(pattern='(?i)/about', forwards=False, outgoing=False))
 async def about_handler(event):
     await client.send_message(event.sender_id, 
@@ -161,7 +163,14 @@ async def handler(event):
                 await client.send_message(event.sender_id, "Want more?",
                                       buttons=Button.inline('Get more Events', 
                                                             "4-event"))
-        elif 'All New Events' in event.raw_text:
+        if 'Ongoing Events' in event.raw_text:
+            ongoing = fetch_tables('ongoing')
+            ongoing_events = parse_content(get_event_content(-1, ongoing)) 
+            header = "<b>Ongoing Events</b>"
+            await client.send_message(event.sender_id, header , link_preview=False)
+            await client.send_message(event.sender_id, ongoing_events, link_preview=False)
+            
+        elif 'Upcoming Events' in event.raw_text:
             newevents = fetch_tables('new')
             content = get_event_content(-1, newevents)
             formatted_text = parse_content(content)
@@ -238,7 +247,7 @@ async def inline_handler(event):
                 buttons=custom.Button.url('Visit the Bot for more', 't.me/bitcoin_events_bot')
                 ) 
             result = await builder.article(
-                'All New Events',
+                'Upcoming Events',
                 text=NEW_EVENTS,
                 thumb= icon,
                 link_preview=False
