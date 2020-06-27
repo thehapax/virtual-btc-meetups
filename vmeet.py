@@ -1,5 +1,5 @@
 from datafeed import get_event_content, parse_content, fetch_tables
-from datafeed import output_past, get_numrows, get_next_content, parse_next_content
+from datafeed import get_numrows, get_next_content, parse_next_content
 from datafeed import fetch_lastupdated
 
 from telethon import TelegramClient, events, sync, utils, functions, Button, custom
@@ -10,7 +10,6 @@ import sys
 import logging
 from logging import handlers
 from telethon.tl.types import InputWebDocument
-from tzutils import get_tz_from_coord
 import re
 
 log_path = '/Users/octo/virtual-btc-meetups/logs/logfile'
