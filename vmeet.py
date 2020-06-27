@@ -1,4 +1,4 @@
-from datafeed import get_event_content, parse_content, fetch_tables, parse_pastevents
+from datafeed import get_event_content, parse_content, fetch_tables
 from datafeed import output_past, get_numrows, get_next_content, parse_next_content
 from datafeed import fetch_lastupdated
 
@@ -178,13 +178,6 @@ async def handler(event):
             lastupdate = fetch_lastupdated()
             await client.send_message(event.sender_id, lastupdate, link_preview=False)
 
-        elif 'Past Events' in event.raw_text:
-            pastevents = fetch_tables('past')
-            events = parse_pastevents(pastevents)
-            output = output_past(events, len(events))
-            header = "<b>All Events in UTC+2 (Berlin Time)</b>\n\n"
-            output = header + output
-            await client.send_message(event.sender_id, output, link_preview=False)
         elif 'About' in event.raw_text:
             await client.send_message(event.sender_id, 
                                     fulmo_info, 
@@ -199,10 +192,8 @@ async def handler(event):
     except Exception as e:
         logger.error(e)
 
-    
 # ==============================   Inline  ==============================
 # cache the data
-pastevents = fetch_tables('past')
 
 def get_inline_data():
     try:

@@ -168,17 +168,6 @@ def output_past(events, len):
 if __name__ == "__main__":
     last_updated = fetch_lastupdated()
     
-    
-    """    
-    header = "All Events in UTC+2 (Berlin Time)"
-    past_events = fetch_tables("past")    
-    events = parse_pastevents(past_events)
-    output = output_past(events, len(events))
-    #    output = output_past(events, 5)
-    output = header + output
-    #print(output)
-    """
-
     """    
     new_events = fetch_tables("new")
     data = "4-event"
@@ -192,11 +181,11 @@ if __name__ == "__main__":
         end = int(start+10)
         print(f'start:{start} - end: {end}')
         rowcount, summary = get_numrows(new_events)
- #       print(summary)
+        #  print(summary)
         print(f'rowcount new events: {rowcount}')
         print(type(rowcount))
         sublist = get_next_content(start, end, summary, int(rowcount))
-#        print(sublist)
+        # print(sublist)
         result = parse_next_content(sublist)
         print(result)
     """
